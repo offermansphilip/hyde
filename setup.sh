@@ -27,10 +27,6 @@ else
   exit 1
 fi
 
-# Install Jupyter Notebook
-echo "Installing Jupyter Notebook..."
-pip install notebook
-
 # Check if the contriever_msmarco_index directory exists
 INDEX_DIR="/workspace/app/contriever_msmarco_index"
 if [ ! -d "$INDEX_DIR" ]; then
