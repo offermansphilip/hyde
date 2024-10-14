@@ -1,5 +1,26 @@
 #!/bin/bash
 
+# Define the source directory where contriever_msmarco_index should be installed
+SRC_DIR="./src"
+INDEX_DIR="$SRC_DIR/contriever_msmarco_index"
+
+# Check if the contriever_msmarco_index directory exists in the ./src directory
+if [ ! -d "$INDEX_DIR" ]; then
+  echo "contriever_msmarco_index directory not found in ./src. Downloading and extracting..."
+
+  # Create the src directory if it doesn't exist
+  mkdir -p $SRC_DIR
+
+  # Download contriever_msmarco_index.tar.gz
+  wget https://www.dropbox.com/s/dytqaqngaupp884/contriever_msmarco_index.tar.gz
+
+  # Extract the tar.gz file to the ./src directory
+  echo "Extracting contriever_msmarco_index.tar.gz to ./src..."
+  tar -xvf contriever_msmarco_index.tar.gz -C $SRC_DIR
+else
+  echo "contriever_msmarco_index directory already exists in ./src. Skipping download."
+fi
+
 # Name of the conda environment
 ENV_NAME="hyde"
 
