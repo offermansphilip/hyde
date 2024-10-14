@@ -167,3 +167,6 @@ cython_debug/
 # Big files
 **/contriever_msmarco_index/
 **/contriever_msmarco_index.tar.gz
+
+# Run files
+runs
