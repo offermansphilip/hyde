@@ -1,6 +1,7 @@
 import time
 import openai
 import cohere
+import ollama
 
 class Generator:
     def __init__(self, model_name, api_key):
@@ -93,6 +94,43 @@ class CohereGenerator(Generator):
                         presence_penalty=self.presence_penalty,
                         p=self.p,
                         k=0,
+                        stop=self.stop,
+                    )
+                    get_result = True
+                except Exception as e:
+                    if self.wait_till_success:
+                        time.sleep(1)
+                    else:
+                        raise e
+            text = self.parse_response(result)
+            texts.append(text)
+        return texts
+class OllamaGenerator(Generator):
+    def __init__(self, model_name, n=8, max_tokens=512, temperature=0.7, top_p=1, stop=['\n\n\n'], wait_till_success=False):
+        super().__init__(model_name, None)  # Ollama doesn't require an API key like OpenAI or Cohere
+        self.n = n
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.top_p = top_p
+        self.stop = stop
+        self.wait_till_success = wait_till_success
+
+    @staticmethod
+    def parse_response(response):
+        return response['text']
+
+    def generate(self, prompt):
+        texts = []
+        for _ in range(self.n):
+            get_result = False
+            while not get_result:
+                try:
+                    result = ollama.Completion.create(
+                        model=self.model_name,
+                        prompt=prompt,
+                        max_tokens=self.max_tokens,
+                        temperature=self.temperature,
+                        top_p=self.top_p,
                         stop=self.stop,
                     )
                     get_result = True
