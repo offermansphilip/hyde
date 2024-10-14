@@ -1,5 +1,5 @@
 import time
-import openai
+# import openai
 import cohere
 import ollama
 
@@ -12,52 +12,52 @@ class Generator:
         return ""
 
 
-class OpenAIGenerator(Generator):
-    def __init__(self, model_name, api_key, n=8, max_tokens=512, temperature=0.7, top_p=1, frequency_penalty=0.0, presence_penalty=0.0, stop=['\n\n\n'], wait_till_success=False):
-        super().__init__(model_name, api_key)
-        self.n = n
-        self.max_tokens = max_tokens
-        self.temperature = temperature
-        self.top_p = top_p
-        self.frequency_penalty = frequency_penalty
-        self.presence_penalty = presence_penalty
-        self.stop = stop
-        self.wait_till_success = wait_till_success
+# class OpenAIGenerator(Generator):
+#     def __init__(self, model_name, api_key, n=8, max_tokens=512, temperature=0.7, top_p=1, frequency_penalty=0.0, presence_penalty=0.0, stop=['\n\n\n'], wait_till_success=False):
+#         super().__init__(model_name, api_key)
+#         self.n = n
+#         self.max_tokens = max_tokens
+#         self.temperature = temperature
+#         self.top_p = top_p
+#         self.frequency_penalty = frequency_penalty
+#         self.presence_penalty = presence_penalty
+#         self.stop = stop
+#         self.wait_till_success = wait_till_success
     
-    @staticmethod
-    def parse_response(response):
-        to_return = []
-        for _, g in enumerate(response['choices']):
-            text = g['text']
-            logprob = sum(g['logprobs']['token_logprobs'])
-            to_return.append((text, logprob))
-        texts = [r[0] for r in sorted(to_return, key=lambda tup: tup[1], reverse=True)]
-        return texts
+#     @staticmethod
+#     def parse_response(response):
+#         to_return = []
+#         for _, g in enumerate(response['choices']):
+#             text = g['text']
+#             logprob = sum(g['logprobs']['token_logprobs'])
+#             to_return.append((text, logprob))
+#         texts = [r[0] for r in sorted(to_return, key=lambda tup: tup[1], reverse=True)]
+#         return texts
 
-    def generate(self, prompt):
-        get_results = False
-        while not get_results:
-            try:
-                result = openai.Completion.create(
-                    engine=self.model_name,
-                    prompt=prompt,
-                    api_key=self.api_key,
-                    max_tokens=self.max_tokens,
-                    temperature=self.temperature,
-                    frequency_penalty=self.frequency_penalty,
-                    presence_penalty=self.presence_penalty,
-                    top_p=self.top_p,
-                    n=self.n,
-                    stop=self.stop,
-                    logprobs=1
-                )
-                get_results = True
-            except Exception as e:
-                if self.wait_till_success:
-                    time.sleep(1)
-                else:
-                    raise e
-        return self.parse_response(result)
+#     def generate(self, prompt):
+#         get_results = False
+#         while not get_results:
+#             try:
+#                 result = openai.Completion.create(
+#                     engine=self.model_name,
+#                     prompt=prompt,
+#                     api_key=self.api_key,
+#                     max_tokens=self.max_tokens,
+#                     temperature=self.temperature,
+#                     frequency_penalty=self.frequency_penalty,
+#                     presence_penalty=self.presence_penalty,
+#                     top_p=self.top_p,
+#                     n=self.n,
+#                     stop=self.stop,
+#                     logprobs=1
+#                 )
+#                 get_results = True
+#             except Exception as e:
+#                 if self.wait_till_success:
+#                     time.sleep(1)
+#                 else:
+#                     raise e
+#         return self.parse_response(result)
 
 
 class CohereGenerator(Generator):
@@ -105,8 +105,9 @@ class CohereGenerator(Generator):
             text = self.parse_response(result)
             texts.append(text)
         return texts
+
 class OllamaGenerator(Generator):
-    def __init__(self, model_name, n=8, max_tokens=512, temperature=0.7, top_p=1, stop=['\n\n\n'], wait_till_success=False):
+    def __init__(self, model_name, n=8, max_tokens=512, temperature=0.7, top_p=1, stop=None, wait_till_success=False):
         super().__init__(model_name, None)  # Ollama doesn't require an API key like OpenAI or Cohere
         self.n = n
         self.max_tokens = max_tokens
@@ -117,7 +118,7 @@ class OllamaGenerator(Generator):
 
     @staticmethod
     def parse_response(response):
-        return response['text']
+        return response.get('response')
 
     def generate(self, prompt):
         texts = []
@@ -125,13 +126,14 @@ class OllamaGenerator(Generator):
             get_result = False
             while not get_result:
                 try:
-                    result = ollama.Completion.create(
+                    # Assuming the correct method is something like `complete`
+                    result = ollama.generate(  # Use the correct method from the Ollama library
                         model=self.model_name,
                         prompt=prompt,
-                        max_tokens=self.max_tokens,
-                        temperature=self.temperature,
-                        top_p=self.top_p,
-                        stop=self.stop,
+                        # max_tokens=self.max_tokens,
+                        # temperature=self.temperature,
+                        # top_p=self.top_p,
+                        # stop=self.stop,
                     )
                     get_result = True
                 except Exception as e:
