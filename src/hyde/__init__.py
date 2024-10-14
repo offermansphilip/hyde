@@ -1,3 +1,3 @@
-from .generator import OpenAIGenerator, CohereGenerator
+from .generator import OllamaGenerator, CohereGenerator
 from .promptor import Promptor
 from .hyde import HyDE
