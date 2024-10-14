@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set the environment name as a variable
+ENV_NAME="hyde2"
+
 # Step 1: Initialize conda for the shell
 echo "Initializing conda for the shell..."
 conda init zsh  # Use the appropriate shell if not using bash
@@ -9,13 +12,13 @@ conda init zsh  # Use the appropriate shell if not using bash
 # echo "Sourcing shell configuration..."
 # source ~/.bashrc  # For bash, or equivalent for your shell
 
-# Step 3: Create the 'hyde' environment
-echo "Creating the conda environment 'hyde' with Python 3.9..."
-conda create --name hyde python=3.9 -y
+# Step 3: Create the environment
+echo "Creating the conda environment '$ENV_NAME' with Python 3.9..."
+conda create --name $ENV_NAME python=3.9 -y
 
-# Step 4: Activate the 'hyde' environment
-echo "Activating the 'hyde' environment..."
-conda activate hyde
+# Step 4: Activate the environment
+echo "Activating the '$ENV_NAME' environment..."
+conda activate $ENV_NAME
 
 # Step 5: Installing packages
 echo "Installing cohere, faiss-cpu, transformers, and PyTorch..."
@@ -46,10 +49,9 @@ else
   echo "contriever_msmarco_index directory already exists. Skipping download."
 fi
 
-
 # Step 6: Confirm successful installation
-echo "All packages installed successfully in the 'hyde' environment!"
+echo "All packages installed successfully in the '$ENV_NAME' environment!"
 
 # Step 7: Listing installed packages
-echo "Listing installed packages..."
+echo "Listing installed packages in '$ENV_NAME' environment..."
 conda list

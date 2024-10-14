@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Name of the conda environment
-ENV_NAME="hyde"
+ENV_NAME="hyde3"
 
 # Add conda-forge channel if it's not already added
 conda config --add channels conda-forge
