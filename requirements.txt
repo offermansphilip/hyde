@@ -5,3 +5,4 @@ faiss-gpu
 transformers
 pyserini
 torch
+ollama
