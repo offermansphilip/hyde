@@ -1,0 +1,9 @@
+cohere
+pyserini
+faiss-gpu
+transformers
+pyserini
+torch
+ollama
+tqdm
+numpy

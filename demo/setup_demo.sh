@@ -22,7 +22,7 @@ else
 fi
 
 # Name of the conda environment
-ENV_NAME="hyde_dl19"
+ENV_NAME="hyde_demo"
 
 # Add conda-forge channel if it's not already added
 conda config --add channels conda-forge
@@ -41,12 +41,12 @@ echo "Activating conda environment '$ENV_NAME'..."
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate $ENV_NAME
 
-# Check if requirements_dl19.txt exists
-if [ -f "requirements_dl19.txt" ]; then
-    echo "Installing required Python modules from requirements_dl19.txt..."
-    pip install -r requirements_dl19.txt
+# Check if requirements.txt exists
+if [ -f "requirements.txt" ]; then
+    echo "Installing required Python modules from requirements.txt..."
+    pip install -r requirements.txt
 else
-    echo "requirements_dl19.txt not found. Please ensure it is in the current directory."
+    echo "requirements.txt not found. Please ensure it is in the current directory."
 fi
 
 echo "Environment setup complete."

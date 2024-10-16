@@ -41,12 +41,12 @@ echo "Activating conda environment '$ENV_NAME'..."
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate $ENV_NAME
 
-# Check if requirements.txt exists
-if [ -f "requirements.txt" ]; then
-    echo "Installing required Python modules from requirements.txt..."
-    pip install -r requirements.txt
+# Check if requirements_demo.txt exists
+if [ -f "requirements_demo.txt" ]; then
+    echo "Installing required Python modules from requirements_demo.txt..."
+    pip install -r requirements_demo.txt
 else
-    echo "requirements.txt not found. Please ensure it is in the current directory."
+    echo "requirements_demo.txt not found. Please ensure it is in the current directory."
 fi
 
 echo "Environment setup complete."
