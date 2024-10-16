@@ -3,9 +3,6 @@ from pyserini.search import FaissSearcher, LuceneSearcher
 from pyserini.search.faiss import AutoQueryEncoder
 from hyde import Promptor, OllamaGenerator, HyDE
 
-# Replace with your API key (OpenAI or Cohere)
-KEY = 'REDACTED'
-
 # Adding print statements to track progress
 print("Initializing Promptor...")
 promptor = Promptor('web search')
