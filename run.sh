@@ -1,31 +1,48 @@
 #!/bin/bash
-#SBATCH -p GPU                # partition (queue)
-#SBATCH -N 1                  # number of nodes
-#SBATCH -t 0-36:00            # time (D-HH:MM)
-#SBATCH -o ./runs/slurm.%N.%j.out   # STDOUT
-#SBATCH -e ./runs/slurm.%N.%j.err   # STDERR
-#SBATCH --gres=gpu:1          # Request 1 GPU
 
-# Load the appropriate environment
-if [ -f "/usr/local/anaconda3/etc/profile.d/conda.sh" ]; then
-    . "/usr/local/anaconda3/etc/profile.d/conda.sh"
-else
-    export PATH="/usr/local/anaconda3/bin:$PATH"
+# Default values
+SERVER=""
+
+# Parse options
+while getopts ":s:" opt; do
+  case $opt in
+    s)
+      SERVER=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Check if the 'old' directory exists, create it if necessary
+if [ ! -d "./runs/old" ]; then
+  echo "Creating directory ./runs/old"
+  mkdir -p "./runs/old"
 fi
 
-# Activate the conda environment
-source activate hyde
+# Move all logfiles matching ./runs/slurm* to ./runs/old
+echo "Moving logfiles from ./runs/slurm* to ./runs/old"
+cp ./runs/slurm* ./runs/old/ 2>/dev/null
 
-# Start the Ollama server in the background
-echo "Starting Ollama server..."
-ollama serve &
+# Check if files were copied successfully
+if [ $? -eq 0 ]; then
+  echo "Logfiles moved successfully."
+else
+  echo "No slurm logfiles to move."
+fi
 
-# Wait a bit to ensure the server starts
-sleep 10  # Adjust the time as necessary for the server to start
+# Submit job with or without nodelist
+if [ -n "$SERVER" ]; then
+  echo "Submitting job to server $SERVER"
+  sbatch --nodelist="$SERVER" ./start_script.sh
+else
+  echo "Submitting job"
+  sbatch ./start_script.sh
+fi
+echo "Waiting before opening logs"
+sleep 5
 
-# Run the Python script
-echo "Running the Python script..."
-python ./src/hyde-demo.py
-
-# Print a message after completion
-echo "Job completed."
+echo "Opening logs"
+tail -f ./runs/slurm*
