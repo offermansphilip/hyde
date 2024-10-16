@@ -161,12 +161,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# VENV
-.HyDE
-
 # Big files
 **/contriever_msmarco_index/
 **/contriever_msmarco_index.tar.gz
 
 # Run files
-runs
+**/runs*
