@@ -2,8 +2,8 @@
 #SBATCH -p GPU                # partition (queue)
 #SBATCH -N 1                  # number of nodes
 #SBATCH -t 0-36:00            # time (D-HH:MM)
-#SBATCH -o ./runs/slurm.%N.%j.out   # STDOUT
-#SBATCH -e ./runs/slurm.%N.%j.err   # STDERR
+#SBATCH -o ./runs_demo/slurm.%N.%j.out   # STDOUT
+#SBATCH -e ./runs_demo/slurm.%N.%j.err   # STDERR
 #SBATCH --gres=gpu:1          # Request 1 GPU
 
 # Load the appropriate environment
@@ -14,7 +14,7 @@ else
 fi
 
 # Activate the conda environment
-source activate hyde
+source activate hyde_demo
 
 # Start the Ollama server in the background
 echo "Starting Ollama server..."
