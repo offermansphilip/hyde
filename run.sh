@@ -24,7 +24,7 @@ fi
 
 # Move all logfiles matching ./runs/slurm* to ./runs/old
 echo "Moving logfiles from ./runs/slurm* to ./runs/old"
-cp ./runs/slurm* ./runs/old/ 2>/dev/null
+mv ./runs/slurm* ./runs/old/ 2>/dev/null
 
 # Check if files were copied successfully
 if [ $? -eq 0 ]; then
