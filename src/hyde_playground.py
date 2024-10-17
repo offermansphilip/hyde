@@ -10,7 +10,7 @@ from hyde import OllamaGenerator, Promptor, HyDE
 
 # Initialize the query encoder and searcher
 query_encoder = AutoQueryEncoder(encoder_dir='facebook/contriever', pooling='mean')
-searcher = FaissSearcher('contriever_msmarco_index/', query_encoder)
+searcher = FaissSearcher('./src/contriever_msmarco_index/', query_encoder)
 corpus = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
 
 # Load the topics and qrels (query relevance judgments)
