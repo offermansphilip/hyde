@@ -64,7 +64,7 @@ else
 fi
 
 echo "Waiting before opening logs"
-sleep 5
+sleep 10
 
 echo "Opening logs"
-tail -f ./runs_playground/slurm*
+tail -f ./runs_playground/*

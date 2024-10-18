@@ -10,7 +10,7 @@ class HyDE:
         self.second_promptor = second_promptor  # Optional second prompter
 
 
-    def improved_query(self, query):
+    def improve_query(self, query):
         prompt = f"Improve the following search query to be more specific, clear, and optimized for retrieving accurate and relevant results. The improved version should maintain the original intent while refining the search for better precision. Output only the improved search query, without adding any context or explanation: {query}"
         # print(f"Original: {query}")
         # print(f"New: {prompt}") #DEBUG
@@ -23,13 +23,14 @@ class HyDE:
             output += self.second_promptor.build_prompt(query)
         return output
 
-    def generate(self, query, n):
+    def generate(self, query, n=8):
+        hypothesis_documents = []
         if self.second_promptor:
             n = n/2
             prompt = self.second_promptor.build_prompt(query)
-            hypothesis_documents.append(self.generator.generate(prompt, n))
+            hypothesis_documents += self.generator.generate(prompt, n)
         prompt = self.promptor.build_prompt(query)
-        hypothesis_documents = self.generator.generate(prompt, n)
+        hypothesis_documents += self.generator.generate(prompt, n)
         return hypothesis_documents
     
     def encode(self, query, hypothesis_documents):
