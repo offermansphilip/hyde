@@ -22,11 +22,32 @@ if [ ! -d "./runs_playground/old" ]; then
   mkdir -p "./runs_playground/old"
 fi
 
-# Move all logfiles matching ./runs_playground/slurm* to ./runs_playground/old
-echo "Moving logfiles from ./runs_playground/slurm* to ./runs_playground/old"
-mv ./runs_playground/slurm* ./runs_playground/old/ 2>/dev/null
+# Find the youngest log file's modification date (excluding files in ./old)
+youngest_file=$(find ./runs_playground -maxdepth 1 -type f -not -path "./runs_playground/old/*" -name "slurm*" -printf "%T@ %p\n" | sort -n | tail -1 | awk '{print $2}')
 
-# Check if files were copied successfully
+# Get the modification date in the format YYYY-MM-DD_HH-MM
+if [ -n "$youngest_file" ]; then
+  log_date=$(date -r "$youngest_file" +"%Y-%m-%d_%H-%M")
+else
+  echo "No slurm logfiles found."
+  exit 1
+fi
+
+# Create a directory inside the 'old' folder with the date of the youngest log file
+target_dir="./runs_playground/old/$log_date"
+if [ ! -d "$target_dir" ]; then
+  echo "Creating directory $target_dir"
+  mkdir -p "$target_dir"
+fi
+
+# Move all log files except those in the 'old' directory and its contents
+echo "Moving logfiles from ./runs_playground to $target_dir"
+find ./runs_playground -maxdepth 1 -type f -not -name "old" -exec mv {} "$target_dir/" \; 2>/dev/null
+
+# Also move any directories (except 'old') and their contents
+find ./runs_playground -maxdepth 1 -type d -not -path "./runs_playground/old" -exec mv {} "$target_dir/" \; 2>/dev/null
+
+# Check if files were moved successfully
 if [ $? -eq 0 ]; then
   echo "Logfiles moved successfully."
 else
@@ -41,6 +62,7 @@ else
   echo "Submitting job"
   sbatch ./start_script_playground.sh
 fi
+
 echo "Waiting before opening logs"
 sleep 5
 
