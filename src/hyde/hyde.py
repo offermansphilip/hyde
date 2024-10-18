@@ -7,6 +7,12 @@ class HyDE:
         self.generator = generator
         self.encoder = encoder
         self.searcher = searcher
+
+    def improved_query(self, query):
+        prompt = f"Improve the following search query to be more specific, clear, and optimized for retrieving accurate and relevant results. The improved version should maintain the original intent while refining the search for better precision. Output only the improved search query, without adding any context or explanation: {query}"
+        # print(f"Original: {query}")
+        # print(f"New: {prompt}") #DEBUG
+        return self.generator.generate(prompt)
     
     def prompt(self, query):
         return self.promptor.build_prompt(query)
