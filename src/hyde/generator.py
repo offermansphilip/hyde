@@ -107,9 +107,8 @@ class CohereGenerator(Generator):
         return texts
 
 class OllamaGenerator(Generator):
-    def __init__(self, model_name, n=8, max_tokens=512, temperature=0.7, top_p=1, stop=None, wait_till_success=False):
+    def __init__(self, model_name, max_tokens=512, temperature=0.7, top_p=1, stop=None, wait_till_success=False):
         super().__init__(model_name, None)  # Ollama doesn't require an API key like OpenAI or Cohere
-        self.n = n
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.top_p = top_p
@@ -120,9 +119,9 @@ class OllamaGenerator(Generator):
     def parse_response(response):
         return response.get('response')
 
-    def generate(self, prompt):
+    def generate(self, prompt, n=8):
         texts = []
-        for _ in range(self.n):
+        for _ in range(n):
             get_result = False
             while not get_result:
                 try:
