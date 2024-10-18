@@ -26,7 +26,7 @@ class HyDE:
     def generate(self, query, n=8):
         hypothesis_documents = []
         if self.second_promptor:
-            n = n/2
+            n = int(n/2)
             prompt = self.second_promptor.build_prompt(query)
             hypothesis_documents += self.generator.generate(prompt, n)
         prompt = self.promptor.build_prompt(query)
