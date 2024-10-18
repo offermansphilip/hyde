@@ -18,7 +18,7 @@ source activate hyde_playground
 
 # Start the Ollama server in the background and log the output to the runs_playground directory
 echo "Starting Ollama server..."
-ollama serve > ./runs_playground/ollama.log2>&1 &
+ollama serve > ./runs_playground/ollama.log 2>&1 &
 
 # Wait a bit to ensure the server starts
 sleep 10  # Adjust the time as necessary for the server to start
