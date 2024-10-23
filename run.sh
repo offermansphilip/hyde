@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Default values
-NUM_RUNS=10
+NUM_RUNS=40
 RUNS_DIR="./runs"
 START_SCRIPT="./start_script.sh"
 
