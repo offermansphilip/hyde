@@ -2,35 +2,32 @@ import numpy as np
 
 
 class HyDE:
-    def __init__(self, promptor, generator, encoder, searcher, second_promptor=None):
-        self.promptor = promptor
+    def __init__(self, promptor1, promptor2, promptor3, promptor4, generator, encoder, searcher):
+        self.promptor1 = promptor1
+        self.promptor2 = promptor2
+        self.promptor3 = promptor3
+        self.promptor4 = promptor4
         self.generator = generator
         self.encoder = encoder
         self.searcher = searcher
-        self.second_promptor = second_promptor  # Optional second prompter
-
-
-    def improve_query(self, query):
-        prompt = f"Improve the following search query to be more specific, clear, and optimized for retrieving accurate and relevant results. The improved version should maintain the original intent while refining the search for better precision. Output only the improved search query, without adding any context or explanation: {query}"
-        # print(f"Original: {query}")
-        # print(f"New: {prompt}") #DEBUG
-        return self.generator.generate(prompt)
     
     def prompt(self, query):
-        output = self.promptor.build_prompt(query)
-        if self.second_promptor:
-            output += "\n Second Prompt: "
-            output += self.second_promptor.build_prompt(query)
+        output = []
+        output.append(self.promptor1.build_prompt(query))
+        output.append(self.promptor2.build_prompt(query))
+        output.append(self.promptor3.build_prompt(query))
+        output.append(self.promptor4.build_prompt(query))
         return output
 
-    def generate(self, query, n=8):
-        hypothesis_documents = []
-        if self.second_promptor:
-            n = int(n/2)
-            prompt = self.second_promptor.build_prompt(query)
-            hypothesis_documents += self.generator.generate(prompt, n)
-        prompt = self.promptor.build_prompt(query)
-        hypothesis_documents += self.generator.generate(prompt, n)
+    def generate(self, query):
+        prompt1 = self.promptor1.build_prompt(query)
+        prompt2 = self.promptor2.build_prompt(query)
+        prompt3 = self.promptor3.build_prompt(query)
+        prompt4 = self.promptor4.build_prompt(query)
+        hypothesis_documents = self.generator.generate(prompt1, 2)
+        hypothesis_documents += self.generator.generate(prompt2, 2) 
+        hypothesis_documents += self.generator.generate(prompt3, 2) 
+        hypothesis_documents += self.generator.generate(prompt4, 2) 
         return hypothesis_documents
     
     def encode(self, query, hypothesis_documents):

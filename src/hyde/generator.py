@@ -61,10 +61,9 @@ class Generator:
 
 
 class CohereGenerator(Generator):
-    def __init__(self, model_name, api_key, n=8, max_tokens=512, temperature=0.7, p=1, frequency_penalty=0.0, presence_penalty=0.0, stop=['\n\n\n'], wait_till_success=False):
+    def __init__(self, model_name, api_key, max_tokens=512, temperature=0.7, p=1, frequency_penalty=0.0, presence_penalty=0.0, stop=['\n\n\n'], wait_till_success=False):
         super().__init__(model_name, api_key)
         self.cohere = cohere.Cohere(self.api_key)
-        self.n = n
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.p = p
@@ -79,9 +78,9 @@ class CohereGenerator(Generator):
         text = response.generations[0].text
         return text
     
-    def generate(self, prompt):
+    def generate(self, prompt, n=8):
         texts = []
-        for _ in range(self.n):
+        for _ in range(n):
             get_result = False
             while not get_result:
                 try:
@@ -128,11 +127,7 @@ class OllamaGenerator(Generator):
                     # Assuming the correct method is something like `complete`
                     result = ollama.generate(  # Use the correct method from the Ollama library
                         model=self.model_name,
-                        prompt=prompt,
-                        # max_tokens=self.max_tokens,
-                        # temperature=self.temperature,
-                        # top_p=self.top_p,
-                        # stop=self.stop,
+                        prompt=prompt
                     )
                     get_result = True
                 except Exception as e:

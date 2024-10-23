@@ -2,35 +2,18 @@ import numpy as np
 
 
 class HyDE:
-    def __init__(self, promptor, generator, encoder, searcher, second_promptor=None):
+    def __init__(self, promptor, generator, encoder, searcher):
         self.promptor = promptor
         self.generator = generator
         self.encoder = encoder
         self.searcher = searcher
-        self.second_promptor = second_promptor  # Optional second prompter
-
-
-    def improve_query(self, query):
-        prompt = f"Improve the following search query to be more specific, clear, and optimized for retrieving accurate and relevant results. The improved version should maintain the original intent while refining the search for better precision. Output only the improved search query, without adding any context or explanation: {query}"
-        # print(f"Original: {query}")
-        # print(f"New: {prompt}") #DEBUG
-        return self.generator.generate(prompt)
     
     def prompt(self, query):
-        output = self.promptor.build_prompt(query)
-        if self.second_promptor:
-            output += "\n Second Prompt: "
-            output += self.second_promptor.build_prompt(query)
-        return output
+        return self.promptor.build_prompt(query)
 
-    def generate(self, query, n=8):
-        hypothesis_documents = []
-        if self.second_promptor:
-            n = int(n/2)
-            prompt = self.second_promptor.build_prompt(query)
-            hypothesis_documents += self.generator.generate(prompt, n)
+    def generate(self, query):
         prompt = self.promptor.build_prompt(query)
-        hypothesis_documents += self.generator.generate(prompt, n)
+        hypothesis_documents = self.generator.generate(prompt)
         return hypothesis_documents
     
     def encode(self, query, hypothesis_documents):
