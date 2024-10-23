@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class HyDE:
+class MultiPromptHyDE:
     def __init__(self, promptor1, promptor2, promptor3, promptor4, generator, encoder, searcher):
         self.promptor1 = promptor1
         self.promptor2 = promptor2
