@@ -1,78 +1,45 @@
 #!/bin/bash
 
 # Default values
-SERVER=""
-
-# Directories and common variables
+NUM_RUNS=1
 RUNS_DIR="./runs"
-OLD_DIR="$RUNS_DIR/old"
 START_SCRIPT="./start_script.sh"
-LOG_PATTERN="slurm*"
 
-# Parse options
-while getopts ":s:" opt; do
-  case $opt in
-    s)
-      SERVER=$OPTARG
-      ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >&2
-      exit 1
-      ;;
-  esac
+# Create the run directory if it doesn't exist
+if [ ! -d "$RUNS_DIR" ]; then
+    echo "Creating directory $RUNS_DIR"
+    mkdir -p "$RUNS_DIR"
+fi
+
+# Function to submit a job
+submit_job() {
+  local run_number=$1
+  local run_dir="$RUNS_DIR/run_$run_number"
+  
+  # Create a directory for the current run
+  mkdir -p "$run_dir"
+  
+  # Set output and error file paths
+  local output_file="$run_dir/slurm.out"
+  local error_file="$run_dir/slurm.err"
+  
+  # If no server was provided, try to find an idle server
+  SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
+  while [ -z "$SERVER" ]; do
+    echo "No idle server found. Checking again in 10 seconds."
+    sleep 10
+    SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
+  done
+  echo "Found idle server: $SERVER"
+  
+  # Submit the job with the appropriate output, error files, job number, and output directory
+  echo "Submitting run $run_number to server $SERVER"
+  sbatch --nodelist="$SERVER" -o "$output_file" -e "$error_file" "$START_SCRIPT" -j "$run_number" -o "$run_dir"
+}
+
+# Run the script 10 times
+for ((i=1; i<=NUM_RUNS; i++)); do
+  submit_job $i
+  echo "Run $i submitted, waiting 10 seconds before checking for the next run."
+  sleep 10
 done
-
-# Check if the 'old' directory exists, create it if necessary
-if [ ! -d "$OLD_DIR" ]; then
-  echo "Creating directory $OLD_DIR"
-  mkdir -p "$OLD_DIR"
-fi
-
-# Find the youngest log file's modification date (excluding files in ./old)
-youngest_file=$(find "$RUNS_DIR" -maxdepth 1 -type f -not -path "$OLD_DIR/*" -name "$LOG_PATTERN" -printf "%T@ %p\n" | sort -n | tail -1 | awk '{print $2}')
-
-# Get the modification date in the format YYYY-MM-DD_HH-MM
-if [ -n "$youngest_file" ]; then
-  log_date=$(date -r "$youngest_file" +"%Y-%m-%d_%H-%M")
-else
-  echo "No slurm logfiles found."
-  exit 1
-fi
-
-# Create a directory inside the 'old' folder with the date of the youngest log file
-target_dir="$OLD_DIR/$log_date"
-if [ ! -d "$target_dir" ]; then
-  echo "Creating directory $target_dir"
-  mkdir -p "$target_dir"
-fi
-
-# Move all log files except those in the 'old' directory and its contents
-echo "Moving logfiles from $RUNS_DIR to $target_dir"
-find "$RUNS_DIR" -maxdepth 1 -type f -not -name "old" -exec mv {} "$target_dir/" \; 2>/dev/null
-
-# Also move any directories (except 'old') and their contents
-find "$RUNS_DIR" -maxdepth 1 -type d -not -path "$OLD_DIR" -exec mv {} "$target_dir/" \; 2>/dev/null
-
-# Check if files were moved successfully
-if [ $? -eq 0 ]; then
-  echo "Logfiles moved successfully."
-else
-  echo "No slurm logfiles to move."
-fi
-
-# Submit job with or without nodelist
-if [ -n "$SERVER" ]; then
-  echo "Submitting job to server $SERVER"
-  sbatch --nodelist="$SERVER" "$START_SCRIPT"
-else
-  echo "Submitting job"
-  sbatch "$START_SCRIPT"
-fi
-
-# Wait before opening logs
-echo "Waiting before opening logs"
-sleep 10
-
-# Open logs
-echo "Opening logs"
-tail -f "$RUNS_DIR"/*

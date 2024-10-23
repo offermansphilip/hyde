@@ -3,6 +3,21 @@ Question: {}
 Passage:"""
 
 
+WEB_SEARCH_EXPERT = """Please write a passage to answer the question. Acting as if you’re an expert in the field.
+Question: {}
+Passage:"""
+
+
+WEB_SEARCH_NOVICE = """Please write a passage to answer the question. Acting as if you’re a novice in the field.
+Question: {}
+Passage:"""
+
+
+WEB_SEARCH_INTERMEDIATE = """Please write a passage to answer the question. Acting as if you’re an intermediate in the field.
+Question: {}
+Passage:"""
+
+
 SCIFACT = """Please write a scientific paper passage to support/refute the claim.
 Claim: {}
 Passage:"""
@@ -46,6 +61,12 @@ class Promptor:
     def build_prompt(self, query: str):
         if self.task == 'web search':
             return WEB_SEARCH.format(query)
+        elif self.task == 'web search expert':
+            return WEB_SEARCH_EXPERT.format(query)
+        elif self.task == 'web search novice':
+            return WEB_SEARCH_NOVICE.format(query)
+        elif self.task == 'web search intermediate':
+            return WEB_SEARCH_INTERMEDIATE.format(query)
         elif self.task == 'scifact':
             return SCIFACT.format(query)
         elif self.task == 'arguana':
