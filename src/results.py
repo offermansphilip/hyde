@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import argparse
 
-def compare_and_average_metrics(input_directory, output_directory, output_csv='combined_avg_metrics.csv', comparison_csv='comparison_metrics.csv'):
+def compare_and_average_metrics(input_directory, output_directory, single_prompt_csv='single_prompt_avg_metrics.csv', multi_prompt_csv='multi_prompt_avg_metrics.csv', comparison_csv='comparison_metrics.csv'):
     # Initialize counters for each metric
     metrics_count = {
         'map': {'single_higher': 0, 'multi_higher': 0},
@@ -11,7 +11,8 @@ def compare_and_average_metrics(input_directory, output_directory, output_csv='c
     }
     
     # Dictionary to store CSV data for averaging
-    csv_data = {}
+    single_prompt_data = {}
+    multi_prompt_data = {}
 
     # Create output directory if it does not exist
     if not os.path.exists(output_directory):
@@ -28,14 +29,19 @@ def compare_and_average_metrics(input_directory, output_directory, output_csv='c
             elif 'multi_prompt' in file and file.endswith('.csv'):
                 multi_prompt_file = os.path.join(subdir, file)
 
-            # Add files to the csv_data dictionary for averaging
+            # Add files to the respective data dictionaries for averaging
             file_key = file.replace(".csv", "")  # Remove the extension to form a key
             file_path = os.path.join(subdir, file)
             if file.endswith('.csv'):
-                if file_key not in csv_data:
-                    csv_data[file_key] = []
                 csv_df = pd.read_csv(file_path)
-                csv_data[file_key].append(csv_df)
+                if 'single_prompt' in file:
+                    if file_key not in single_prompt_data:
+                        single_prompt_data[file_key] = []
+                    single_prompt_data[file_key].append(csv_df)
+                elif 'multi_prompt' in file:
+                    if file_key not in multi_prompt_data:
+                        multi_prompt_data[file_key] = []
+                    multi_prompt_data[file_key].append(csv_df)
 
         # Check if both files were found
         if not single_prompt_file or not multi_prompt_file:
@@ -57,20 +63,33 @@ def compare_and_average_metrics(input_directory, output_directory, output_csv='c
                 elif multi_value > single_value:
                     metrics_count[metric]['multi_higher'] += 1
 
-    # After comparison, average the results of the CSV files and write them to output CSV
-    combined_dfs = []
-    for file_key, dataframes in csv_data.items():
-        # Concatenate all dataframes and calculate mean of numerical columns
+    # After comparison, average the results of the single and multi-prompt CSV files and write them to respective CSVs
+    single_combined_dfs = []
+    for file_key, dataframes in single_prompt_data.items():
+        # Concatenate all dataframes and calculate mean of numerical columns for single_prompt
         combined_df = pd.concat(dataframes).groupby('Metric').mean().reset_index()
-        combined_dfs.append(combined_df)
+        single_combined_dfs.append(combined_df)
 
-    # Concatenate all averaged DataFrames into one and save as CSV in the results directory
-    final_combined_df = pd.concat(combined_dfs).groupby('Metric').mean().reset_index()
-    output_file_path = os.path.join(output_directory, output_csv)
-    final_combined_df.to_csv(output_file_path, index=False)
+    # Concatenate all averaged DataFrames into one and save as CSV in the results directory for single_prompt
+    final_single_combined_df = pd.concat(single_combined_dfs).groupby('Metric').mean().reset_index()
+    single_output_file_path = os.path.join(output_directory, single_prompt_csv)
+    final_single_combined_df.to_csv(single_output_file_path, index=False)
 
-    print(f"Comparison and averaged CSV created: {output_file_path}")
-    
+    print(f"Single prompt averaged CSV created: {single_output_file_path}")
+
+    multi_combined_dfs = []
+    for file_key, dataframes in multi_prompt_data.items():
+        # Concatenate all dataframes and calculate mean of numerical columns for multi_prompt
+        combined_df = pd.concat(dataframes).groupby('Metric').mean().reset_index()
+        multi_combined_dfs.append(combined_df)
+
+    # Concatenate all averaged DataFrames into one and save as CSV in the results directory for multi_prompt
+    final_multi_combined_df = pd.concat(multi_combined_dfs).groupby('Metric').mean().reset_index()
+    multi_output_file_path = os.path.join(output_directory, multi_prompt_csv)
+    final_multi_combined_df.to_csv(multi_output_file_path, index=False)
+
+    print(f"Multi prompt averaged CSV created: {multi_output_file_path}")
+
     # Save comparison results into a CSV
     comparison_results = []
     for metric, comparison in metrics_count.items():
