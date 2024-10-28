@@ -127,7 +127,8 @@ class OllamaGenerator(Generator):
                     # Assuming the correct method is something like `complete`
                     result = ollama.generate(  # Use the correct method from the Ollama library
                         model=self.model_name,
-                        prompt=prompt
+                        prompt=prompt,
+                        options={"temperature": self.temperature}
                     )
                     get_result = True
                 except Exception as e:
