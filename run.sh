@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Default values
-NUM_RUNS=40
-RUNS_DIR="./runs"
+NUM_RUNS=10
+RUNS_DIR="./runs_3"
 START_SCRIPT="./start_script.sh"
 
 # Create the run directory if it doesn't exist
@@ -24,7 +24,8 @@ submit_job() {
   local error_file="$run_dir/slurm.err"
   
   # If no server was provided, try to find an idle server
-  SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
+  # SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
+  SERVER="lenurple"
   while [ -z "$SERVER" ]; do
     echo "No idle server found. Checking again in 10 seconds."
     sleep 10
