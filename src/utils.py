@@ -38,3 +38,10 @@ def evaluate_metrics(result_file, topics_name='dl19-passage'):
             print(f"Error parsing result for {metric}")
 
     return results
+
+
+def replace_spaces_with_underscores(sentence):
+    """
+    Function that replaces spaces with _
+    """
+    return sentence.replace(" ", "_")
