@@ -167,4 +167,10 @@ cython_debug/
 
 # Run files
 **/runs*
+
+# Results
 **/result**
+
+# Slurm files
+**/slurm**
+
