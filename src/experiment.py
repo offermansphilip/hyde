@@ -3,6 +3,7 @@ import json
 import csv
 from tqdm import tqdm
 import argparse
+import numpy as np
 from pyserini.search import FaissSearcher, LuceneSearcher
 from pyserini.search.faiss import AutoQueryEncoder
 from pyserini.search import get_topics, get_qrels
@@ -11,7 +12,7 @@ from pyserini.search import get_topics, get_qrels
 from hyde import OllamaGenerator, Promptor, HyDE, MultiPromptHyDE
 
 # Import evaluation function
-from utils import evaluate_metrics
+from utils import evaluate_metrics, replace_spaces_with_underscores
 
 def main():
     # Parse command line arguments
@@ -36,7 +37,7 @@ def main():
     searcher = FaissSearcher(args.index_path, query_encoder)
 
     # Load a pre-built Lucene index for corpus-based retrieval
-    corpus = LuceneSearcher.from_prebuilt_index(args.prebuilt_index)
+    # corpus = LuceneSearcher.from_prebuilt_index(args.prebuilt_index)
 
     # Load the topics (queries) and the corresponding qrels (ground truth relevance judgments)
     topics = get_topics(args.topics_name)
@@ -45,127 +46,239 @@ def main():
     # Initialize the Ollama-based text generator using the specified model
     generator = OllamaGenerator(model_name=args.model_name)
 
+    print("___CONTRIEVER___")
+
+    trec_file = 'dl19-contriever-top1000-8rep-trec'
+    output_csv_file = 'dl19-contriever-top1000-8rep-output.csv'
+     # Define the filepaths
+    trec_filepath = os.path.join(args.run_directory, trec_file)
+    output_csv_filepath = os.path.join(args.run_directory, output_csv_file)
+
+    # Open the output file for writing retrieval results
+    with open(trec_filepath, 'w') as f:
+        for qid in tqdm(topics):
+            if qid in qrels:
+                query = topics[qid]['title']  # Extract the query text from the topics
+
+                # Generate Embedding
+                # Encode the query using the provided encoder
+                query_emb = query_encoder.encode(query)
+                # Convert the encoding to a NumPy array
+                query_emb = np.array(query_emb)
+                # Reshape the embedding to a 2D array with one row
+                embedding = query_emb.reshape((1, len(query_emb)))
+    
+                # Perform a search in the Faiss index using the embedding
+                hits = searcher.search(embedding, k=1000)
+        
+                # Write the top retrieved document results to the output file
+                for rank, hit in enumerate(hits, start=1):
+                    f.write(f'{qid} Q0 {hit.docid} {rank} {hit.score} rank\n')
+                
+    # Evaluating metrics
+    evaluation_results = evaluate_metrics(trec_filepath)
+
+    # Write the evaluation results to the CSV file
+    with open(output_csv_filepath, mode='w', newline='') as file:
+        writer = csv.writer(file)
+    
+        # Write header (optional)
+        writer.writerow(['Metric', 'Value'])
+    
+        # Write the rows (each metric and its value)
+        writer.writerows(evaluation_results)
+    
+    print("___SINGLE_PROMPTS_HYDE___")
+    # Define a list of prompt styles to iterate over
+    prompt_styles = ['web search expert', 'web search novice', 'web search intermediate']
+
+    for style in prompt_styles:
+        print(f"Running Single Prompt HyDE for prompt style: {style}")
+        
+        # Initialize a Promptor object for the specified prompt style
+        promptor = Promptor(task=style)
+        
+        # Initialize the HyDE model for generating hypotheses and performing retrieval
+        hyde = HyDE(promptor=promptor, generator=generator, encoder=query_encoder, searcher=searcher)
+        
+        # Set filenames based on the prompt style
+        trec_file = f'single_prompt-hyde-{replace_spaces_with_underscores(style)}-dl19-contriever-llama3.1-0.7-top1000-8rep-trec'
+        hypothetical_documents_file = f'single_prompt-hyde-{replace_spaces_with_underscores(style)}-dl19-contriever-llama3.1-0.7-top1000-8rep-hyd.json'
+        output_csv_file = f'single_prompt-hyde-{replace_spaces_with_underscores(style)}-dl19-contriever-llama3.1-0.7-top1000-8rep-output.csv'
+        
+        # Define the filepaths
+        trec_filepath = os.path.join(args.run_directory, trec_file)
+        hypothetical_documents_filepath = os.path.join(args.run_directory, hypothetical_documents_file) 
+        output_csv_filepath = os.path.join(args.run_directory, output_csv_file)
+        
+        # Open the output file for writing retrieval results
+        with open(trec_filepath, 'w') as f:
+            for qid in tqdm(topics):
+                if qid in qrels:
+                    query = topics[qid]['title']  # Extract the query text from the topics
+                    
+                    # Generate hypothesis documents based on the query
+                    hypothesis_documents = hyde.generate(query, temperature=0.7)
+                    
+                    # Encode the query and hypothesis documents into dense vectors
+                    hyde_vector = hyde.encode(query, hypothesis_documents)
+                    
+                    # Perform a search in the Faiss index using the generated HyDE vector
+                    hits = hyde.search(hyde_vector, k=1000)
+                    
+                    # Write the top retrieved document results to the output file
+                    for rank, hit in enumerate(hits, start=1):
+                        f.write(f'{qid} Q0 {hit.docid} {rank} {hit.score} rank\n')
+                    
+                    # Write the query and hypothesis_documents to the JSON file incrementally
+                    with open(hypothetical_documents_filepath, 'a') as hypothetical_documents:
+                        json.dump({
+                            'query_id': qid,
+                            'query': query,
+                            'hypothesis_documents': hypothesis_documents
+                        }, hypothetical_documents)
+                        hypothetical_documents.write('\n')  # Add a newline after each JSON object for separation
+
+        # Evaluate metrics for each prompt style run
+        evaluation_results = evaluate_metrics(trec_filepath)
+
+        # Write the evaluation results to the CSV file
+        with open(output_csv_filepath, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Metric', 'Value'])  # Write header
+            writer.writerows(evaluation_results)  # Write metrics
+
+        print(f"Completed Single Prompt HyDE for prompt style: {style}")
+
+
+    # Temperature settings for experiments
+    temperatures = [0, 0.35, 0.7]
+
+    # Run Single-Prompt HyDE
     print("___SINGLE_PROMPT_HYDE____")
+    for temp in temperatures:
+        # Create a Promptor object for generating web search prompts
+        promptor = Promptor(task='web search')
 
-    # Create a Promptor object for generating web search prompts
-    promptor = Promptor(task='web search')
+        # Initialize the HyDE model for generating hypotheses and performing retrieval
+        hyde = HyDE(promptor=promptor, generator=generator, encoder=query_encoder, searcher=searcher)
 
-    # Initialize the HyDE model for generating hypotheses and performing retrieval
-    hyde = HyDE(promptor=promptor, generator=generator, encoder=query_encoder, searcher=searcher)
+        # Set filenames
+        trec_file = f'single_prompt-hyde-web_search-dl19-contriever-llama3.1-{temp}-top1000-8rep-trec'
+        hypothetical_documents_file = f'single_prompt-hyde-web_search-dl19-contriever-llama3.1-{temp}-top1000-8rep-hyd.json'
+        output_csv_file = f'single_prompt-hyde-web_search-dl19-contriever-llama3.1-{temp}-top1000-8rep-output.csv'
 
-    # Set filenames
-    trec_file = 'single_prompt-hyde-dl19-contriever-llama3.1-top1000-8rep-trec'
-    hypothetical_documents_file = 'single_prompt-hyde-dl19-contriever-llama3.1-top1000-8rep-hyd.json'
-    output_csv_file = 'single_prompt-hyde-dl19-contriever-llama3.1-top1000-8rep-output.csv'
+        # Define the filepaths
+        trec_filepath = os.path.join(args.run_directory, trec_file)
+        hypothetical_documents_filepath = os.path.join(args.run_directory, hypothetical_documents_file) 
+        output_csv_filepath = os.path.join(args.run_directory, output_csv_file)
 
-    # Define the filepaths
-    trec_filepath = os.path.join(args.run_directory, trec_file)
-    hypothetical_documents_filepath = os.path.join(args.run_directory, hypothetical_documents_file) 
-    output_csv_filepath = os.path.join(args.run_directory, output_csv_file)
+        # Open the output file for writing retrieval results
+        with open(trec_filepath, 'w') as f:
+            for qid in tqdm(topics):
+                if qid in qrels:
+                    query = topics[qid]['title']  # Extract the query text from the topics
 
-    # Open the output file for writing retrieval results
-    with open(trec_filepath, 'w') as f:
-        for qid in tqdm(topics):
-            if qid in qrels:
-                query = topics[qid]['title']  # Extract the query text from the topics
+                    # Generate hypothesis documents based on the query
+                    hypothesis_documents = hyde.generate(query, temperature=temp)
 
-                # Generate hypothesis documents based on the query
-                hypothesis_documents = hyde.generate(query)
+                    # Encode the query and hypothesis documents into dense vectors
+                    hyde_vector = hyde.encode(query, hypothesis_documents)
 
-                # Encode the query and hypothesis documents into dense vectors
-                hyde_vector = hyde.encode(query, hypothesis_documents)
+                    # Perform a search in the Faiss index using the generated HyDE vector
+                    hits = hyde.search(hyde_vector, k=1000)
 
-                # Perform a search in the Faiss index using the generated HyDE vector
-                hits = hyde.search(hyde_vector, k=1000)
+                    # Write the top retrieved document results to the output file
+                    for rank, hit in enumerate(hits, start=1):
+                        f.write(f'{qid} Q0 {hit.docid} {rank} {hit.score} rank\n')
+                    
+                    # Write the query and hypothesis_documents to the JSON file incrementally
+                    with open(hypothetical_documents_filepath, 'a') as hypthetical_documents:
+                        json.dump({
+                            'query_id': qid,
+                            'query': query,
+                            'hypothesis_documents': hypothesis_documents
+                        }, hypthetical_documents)
+                        hypthetical_documents.write('\n')  # Add a newline after each JSON object for separation
 
-                # Write the top retrieved document results to the output file
-                for rank, hit in enumerate(hits, start=1):
-                    f.write(f'{qid} Q0 {hit.docid} {rank} {hit.score} rank\n')
-                
-                # Write the query and hypothesis_documents to the JSON file incrementally
-                with open(hypothetical_documents_filepath, 'a') as hypthetical_documents:
-                    json.dump({
-                        'query_id': qid,
-                        'query': query,
-                        'hypothesis_documents': hypothesis_documents
-                    }, hypthetical_documents)
-                    hypthetical_documents.write('\n')  # Add a newline after each JSON object for separation
+        # Example usage for evaluating metrics
+        evaluation_results = evaluate_metrics(trec_filepath)
 
-    # Example usage for evaluating metrics
-    evaluation_results = evaluate_metrics(trec_filepath)
+        # Write the evaluation results to the CSV file
+        with open(output_csv_filepath, mode='w', newline='') as file:
+            writer = csv.writer(file)
+        
+            # Write header (optional)
+            writer.writerow(['Metric', 'Value'])
+        
+            # Write the rows (each metric and its value)
+            writer.writerows(evaluation_results)
 
-    # Write the evaluation results to the CSV file
-    with open(output_csv_filepath, mode='w', newline='') as file:
-        writer = csv.writer(file)
-    
-        # Write header (optional)
-        writer.writerow(['Metric', 'Value'])
-    
-        # Write the rows (each metric and its value)
-        writer.writerows(evaluation_results)
-
-
+    # Run Multi-Prompt HyDE
     print("___MULTI_PROMPT_HYDE____")
+    for temp in temperatures:
+        # Create multiple Promptor objects for different perspectives in web search prompts
+        promptor1 = Promptor(task='web search')
+        promptor2 = Promptor(task='web search expert')
+        promptor3 = Promptor(task='web search novice')
+        promptor4 = Promptor(task='web search intermediate')
 
-    # Create a Promptor object for generating web search prompts
-    promptor1 = Promptor(task='web search')
-    promptor2 = Promptor(task='web search expert')
-    promptor3 = Promptor(task='web search novice')
-    promptor4 = Promptor(task='web search intermediate')
+        # Initialize the MultiPromptHyDE model
+        hyde = MultiPromptHyDE(promptor1=promptor1, promptor2=promptor2, promptor3=promptor3, promptor4=promptor4, 
+                               generator=generator, encoder=query_encoder, searcher=searcher)
 
-    # Initialize the HyDE model for generating hypotheses and performing retrieval
-    hyde = MultiPromptHyDE(promptor1=promptor1, promptor2=promptor2, promptor3=promptor3, promptor4=promptor4, generator=generator, encoder=query_encoder, searcher=searcher)
+        # Set filenames
+        trec_file = f'multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-trec'
+        hypothetical_documents_file = f'multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-hyd.json'
+        output_csv_file = f'multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-output.csv'
 
-    # Set filenames
-    trec_file = 'multi_prompt-hyde-dl19-contriever-llama3.1-top1000-8rep-trec'
-    hypothetical_documents_file = 'multi_prompt-hyde-dl19-contriever-llama3.1-top1000-8rep-hyd.json'
-    output_csv_file = 'multi_prompt-hyde-dl19-contriever-llama3.1-top1000-8rep-output.csv'
+        # Define the filepaths
+        trec_filepath = os.path.join(args.run_directory, trec_file)
+        hypothetical_documents_filepath = os.path.join(args.run_directory, hypothetical_documents_file) 
+        output_csv_filepath = os.path.join(args.run_directory, output_csv_file)
 
-    # Define the filepaths
-    trec_filepath = os.path.join(args.run_directory, trec_file)
-    hypothetical_documents_filepath = os.path.join(args.run_directory, hypothetical_documents_file) 
-    output_csv_filepath = os.path.join(args.run_directory, output_csv_file)
+        # Open the output file for writing retrieval results
+        with open(trec_filepath, 'w') as f:
+            for qid in tqdm(topics):
+                if qid in qrels:
+                    query = topics[qid]['title']  # Extract the query text from the topics
 
-    # Open the output file for writing retrieval results
-    with open(trec_filepath, 'w') as f:
-        for qid in tqdm(topics):
-            if qid in qrels:
-                query = topics[qid]['title']  # Extract the query text from the topics
+                    # Generate hypothesis documents based on the query
+                    hypothesis_documents = hyde.generate(query, temperature=temp)
 
-                # Generate hypothesis documents based on the query
-                hypothesis_documents = hyde.generate(query)
+                    # Encode the query and hypothesis documents into dense vectors
+                    hyde_vector = hyde.encode(query, hypothesis_documents)
 
-                # Encode the query and hypothesis documents into dense vectors
-                hyde_vector = hyde.encode(query, hypothesis_documents)
+                    # Perform a search in the Faiss index using the generated HyDE vector
+                    hits = hyde.search(hyde_vector, k=1000)
 
-                # Perform a search in the Faiss index using the generated HyDE vector
-                hits = hyde.search(hyde_vector, k=1000)
+                    # Write the top retrieved document results to the output file
+                    for rank, hit in enumerate(hits, start=1):
+                        f.write(f'{qid} Q0 {hit.docid} {rank} {hit.score} rank\n')
+                    
+                    # Write the query and hypothesis_documents to the JSON file incrementally
+                    with open(hypothetical_documents_filepath, 'a') as hypthetical_documents:
+                        json.dump({
+                            'query_id': qid,
+                            'query': query,
+                            'hypothesis_documents': hypothesis_documents
+                        }, hypthetical_documents)
+                        hypthetical_documents.write('\n')  # Add a newline after each JSON object for separation
 
-                # Write the top retrieved document results to the output file
-                for rank, hit in enumerate(hits, start=1):
-                    f.write(f'{qid} Q0 {hit.docid} {rank} {hit.score} rank\n')
-                
-                # Write the query and hypothesis_documents to the JSON file incrementally
-                with open(hypothetical_documents_filepath, 'a') as hypthetical_documents:
-                    json.dump({
-                        'query_id': qid,
-                        'query': query,
-                        'hypothesis_documents': hypothesis_documents
-                    }, hypthetical_documents)
-                    hypthetical_documents.write('\n')  # Add a newline after each JSON object for separation
+        # Example usage for evaluating metrics
+        evaluation_results = evaluate_metrics(trec_filepath)
 
-    # Example usage for evaluating metrics
-    evaluation_results = evaluate_metrics(trec_filepath)
+        # Write the evaluation results to the CSV file
+        with open(output_csv_filepath, mode='w', newline='') as file:
+            writer = csv.writer(file)
+        
+            # Write header (optional)
+            writer.writerow(['Metric', 'Value'])
+        
+            # Write the rows (each metric and its value)
+            writer.writerows(evaluation_results)
 
-    # Write the evaluation results to the CSV file
-    with open(output_csv_filepath, mode='w', newline='') as file:
-        writer = csv.writer(file)
-    
-        # Write header (optional)
-        writer.writerow(['Metric', 'Value'])
-    
-        # Write the rows (each metric and its value)
-        writer.writerows(evaluation_results)
+  
 
    
 
