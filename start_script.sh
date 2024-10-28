@@ -52,11 +52,11 @@ fi
 source activate ${ENV_NAME}
 
 # Start the Ollama server in the background and log the output
-echo "Starting Ollama server..."
-ollama serve > ${OLLAMA_LOG} 2>&1 &
-
+echo "Starting Ollama server and pulling model..."
+ollama serve >> ${OLLAMA_LOG} 2>&1 &
 # Wait a bit to ensure the server starts
-sleep 10  # Adjust the time as necessary for the server to start
+sleep 10
+ollama pull llama3.1 >> ${OLLAMA_LOG} 2>&1 &
 
 # Run the Python script with the job number and output directory as arguments
 echo "Running the Python script with job number ${JOB_NUMBER} and output directory ${OUTPUT_DIR}..."
