@@ -56,7 +56,7 @@ class CohereGenerator(Generator):
         return texts
 
 class OllamaGenerator(Generator):
-    def __init__(self, model_name, max_tokens=512, temperature=0.7 top_p=1, stop=None, wait_till_success=False):
+    def __init__(self, model_name, max_tokens=512, temperature=0.7, top_p=1, stop=None, wait_till_success=False):
         super().__init__(model_name, None)  
         self.max_tokens = max_tokens
         self.temperature=temperature
@@ -89,3 +89,6 @@ class OllamaGenerator(Generator):
             text = self.parse_response(result)
             texts.append(text)
         return texts
+    
+    def get_temperature(self):
+        return self.temperature

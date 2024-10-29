@@ -11,9 +11,9 @@ class HyDE:
     def prompt(self, query):
         return self.promptor.build_prompt(query)
 
-    def generate(self, query, temperature=0.7):
+    def generate(self, query):
         prompt = self.promptor.build_prompt(query)
-        hypothesis_documents = self.generator.generate(prompt, temperature=temperature)
+        hypothesis_documents = self.generator.generate(prompt)
         return hypothesis_documents
     
     def encode(self, query, hypothesis_documents):

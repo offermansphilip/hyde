@@ -10,7 +10,6 @@ from pyserini.search import get_topics, get_qrels
 
 # Import the classes from your provided module for generating and handling prompts
 from hyde import OllamaGenerator, Promptor, HyDE, MultiPromptHyDE
-
 # Import evaluation function
 from utils import evaluate_metrics, replace_spaces_with_underscores
 
@@ -36,15 +35,15 @@ def main():
     # Create a FaissSearcher for dense vector search over the Faiss index
     searcher = FaissSearcher(args.index_path, query_encoder)
 
-    # Load a pre-built Lucene index for corpus-based retrieval
-    # corpus = LuceneSearcher.from_prebuilt_index(args.prebuilt_index)
-
     # Load the topics (queries) and the corresponding qrels (ground truth relevance judgments)
     topics = get_topics(args.topics_name)
     qrels = get_qrels(args.topics_name)
 
-    # Initialize the Ollama-based text generator using the specified model
-    generator = OllamaGenerator(model_name=args.model_name)
+    # Initialize the Ollama-based text generators using the specified model and temp
+    generator000 = OllamaGenerator(model_name=args.model_name, temperature=0)
+    generator035 = OllamaGenerator(model_name=args.model_name, temperature=0.35)
+    generator070 = OllamaGenerator(model_name=args.model_name, temperature=0.70)
+
 
     print("___CONTRIEVER___")
 
@@ -99,7 +98,7 @@ def main():
         promptor = Promptor(task=style)
         
         # Initialize the HyDE model for generating hypotheses and performing retrieval
-        hyde = HyDE(promptor=promptor, generator=generator, encoder=query_encoder, searcher=searcher)
+        hyde = HyDE(promptor=promptor, generator=generator070, encoder=query_encoder, searcher=searcher)
         
         # Set filenames based on the prompt style
         trec_file = f'single_prompt-hyde-{replace_spaces_with_underscores(style)}-dl19-contriever-llama3.1-0.7-top1000-8rep-trec'
@@ -118,7 +117,7 @@ def main():
                     query = topics[qid]['title']  # Extract the query text from the topics
                     
                     # Generate hypothesis documents based on the query
-                    hypothesis_documents = hyde.generate(query, temperature=0.7)
+                    hypothesis_documents = hyde.generate(query)
                     
                     # Encode the query and hypothesis documents into dense vectors
                     hyde_vector = hyde.encode(query, hypothesis_documents)
@@ -151,18 +150,18 @@ def main():
         print(f"Completed Single Prompt HyDE for prompt style: {style}")
 
 
-    # Temperature settings for experiments
-    temperatures = [0, 0.35, 0.7]
+    generators = [generator000, generator035, generator070]
 
     # Run Single-Prompt HyDE
     print("___SINGLE_PROMPT_HYDE____")
-    for temp in temperatures:
+    for generator in generators:
         # Create a Promptor object for generating web search prompts
         promptor = Promptor(task='web search')
 
         # Initialize the HyDE model for generating hypotheses and performing retrieval
         hyde = HyDE(promptor=promptor, generator=generator, encoder=query_encoder, searcher=searcher)
 
+        temp = generator.get_temperature()
         # Set filenames
         trec_file = f'single_prompt-hyde-web_search-dl19-contriever-llama3.1-{temp}-top1000-8rep-trec'
         hypothetical_documents_file = f'single_prompt-hyde-web_search-dl19-contriever-llama3.1-{temp}-top1000-8rep-hyd.json'
@@ -216,7 +215,7 @@ def main():
 
     # Run Multi-Prompt HyDE
     print("___MULTI_PROMPT_HYDE____")
-    for temp in temperatures:
+    for generator in generators:
         # Create multiple Promptor objects for different perspectives in web search prompts
         promptor1 = Promptor(task='web search')
         promptor2 = Promptor(task='web search expert')
@@ -227,6 +226,7 @@ def main():
         hyde = MultiPromptHyDE(promptor1=promptor1, promptor2=promptor2, promptor3=promptor3, promptor4=promptor4, 
                                generator=generator, encoder=query_encoder, searcher=searcher)
 
+        temp = generator.get_temperature()
         # Set filenames
         trec_file = f'multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-trec'
         hypothetical_documents_file = f'multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-hyd.json'
@@ -277,10 +277,6 @@ def main():
         
             # Write the rows (each metric and its value)
             writer.writerows(evaluation_results)
-
-  
-
-   
 
 if __name__ == "__main__":
     main()
