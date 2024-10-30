@@ -10,7 +10,7 @@ OLLAMA_LOG_DIR=""
 RUN_NUMBERS=""
 
 # Parse options
-while getopts ":o:j:" opt; do
+while getopts ":o:l:n:" opt; do
   case $opt in
     o)
       OUTPUT_DIRS=$OPTARG
