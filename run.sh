@@ -25,8 +25,10 @@ submit_job() {
     run_numbers+="$i"
   done
   echo "$run_numbers"
-  local output_file="$RUNS_DIR/slurm$run_numbers.out"
-  local error_file="$RUNS_DIR/slurm$run_numbers.err"
+  local output_file="$RUNS_DIR/slurm${run_numbers}.out"
+  local error_file="$RUNS_DIR/slurm${run_numbers}.err"
+
+  echo "output_file"
   
   # If no server was provided, try to find an idle server
   # SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
