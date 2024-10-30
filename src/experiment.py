@@ -179,7 +179,7 @@ def main():
                     query = topics[qid]['title']  # Extract the query text from the topics
 
                     # Generate hypothesis documents based on the query
-                    hypothesis_documents = hyde.generate(query, temperature=temp)
+                    hypothesis_documents = hyde.generate(query)
 
                     # Encode the query and hypothesis documents into dense vectors
                     hyde_vector = hyde.encode(query, hypothesis_documents)
@@ -244,7 +244,7 @@ def main():
                     query = topics[qid]['title']  # Extract the query text from the topics
 
                     # Generate hypothesis documents based on the query
-                    hypothesis_documents = hyde.generate(query, temperature=temp)
+                    hypothesis_documents = hyde.generate(query)
 
                     # Encode the query and hypothesis documents into dense vectors
                     hyde_vector = hyde.encode(query, hypothesis_documents)
