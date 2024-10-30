@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Default values
-NUM_RUNS=10
+NUM_RUNS=1
 RUNS_DIR="./runs/runs_1"
 START_SCRIPT="./start_script.sh"
 
@@ -30,19 +30,21 @@ submit_job() {
   
   # If no server was provided, try to find an idle server
   # SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
-  # SERVER="lenurple"
-  SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n')
+  SERVER="byzantium"
+  # SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n')
   while [ -z "$SERVER" ]; do
     echo "No idle server found. Checking again in 10 seconds."
     sleep 10
-    SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n')
+    SERVER="byzantium"
+    # SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n')
     # SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
   done
   echo "Found idle server: $SERVER"
   
   # Submit the job with the appropriate output, error files, job number, and output directory
   echo "Submitting run $run_number to server $SERVER"
-  sbatch --nodelist="$SERVER" -o "$output_file" -e "$error_file" "$START_SCRIPT" -o "$run_dirs" -l $RUNS_DIR -n $run_numbers
+  # sbatch --nodelist="$SERVER" -o "$output_file" -e "$error_file" "$START_SCRIPT" -o "$run_dirs" -l $RUNS_DIR -n $run_numbers
+  sbatch -o "$output_file" -e "$error_file" "$START_SCRIPT" -o "$run_dirs" -l $RUNS_DIR -n $run_numbers
 }
 
 # Run the script 10 times
