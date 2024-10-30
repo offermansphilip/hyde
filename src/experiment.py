@@ -24,7 +24,6 @@ def main():
     parser.add_argument('--prebuilt_index', type=str, default='msmarco-v1-passage', help="Prebuilt Lucene index for passage retrieval.")
     parser.add_argument('--run_directory', type=str, default='./runs/', help="Directory to store the retrieval results.")
     parser.add_argument('--topics_name', type=str, default='dl19-passage', help="Name of the evaluation topic set.")
-    parser.add_argument('--job_number', type=int, default=0, help="Job number.") 
     
     # Parse the arguments
     args = parser.parse_args()

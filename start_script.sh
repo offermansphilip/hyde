@@ -5,17 +5,21 @@
 #SBATCH --gres=gpu:1          # Request 1 GPU
 
 # Default values for arguments
-OUTPUT_DIR=""
-JOB_NUMBER=""
+OUTPUT_DIRS=""
+OLLAMA_LOG_DIR=""
+RUN_NUMBERS=""
 
 # Parse options
 while getopts ":o:j:" opt; do
   case $opt in
     o)
-      OUTPUT_DIR=$OPTARG
+      OUTPUT_DIRS=$OPTARG
       ;;
-    j)
-      JOB_NUMBER=$OPTARG
+    l)
+      OLLAMA_LOG_DIR=$OPTARG
+      ;;
+    n)
+      RUN_NUMBERS=$OPTARG
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -25,21 +29,15 @@ while getopts ":o:j:" opt; do
 done
 
 # Check if the output directory and job number are provided
-if [ -z "$OUTPUT_DIR" ] || [ -z "$JOB_NUMBER" ]; then
-  echo "Both output directory (-o) and job number (-j) must be provided."
+if [ -z "$OUTPUT_DIRS" ] || [ -z "$OLLAMA_LOG_DIR" ] || [ -z "$RUN_NUMBERS" ]; then
+  echo "output directories (-o) and ollama log directory (-l) and run numbers (-n) must be provided."
   exit 1
 fi
 
 CONDA_PATH="/usr/local/anaconda3"
 ENV_NAME="hyde"
-OLLAMA_LOG="${OUTPUT_DIR}/ollama.log"
+OLLAMA_LOG="${OLLAMA_LOG_DIR}/ollama${RUN_NUMBERS}.log"
 PYTHON_SCRIPT="./src/experiment.py"
-
-# Create the output directory if it doesn't exist
-if [ ! -d "$OUTPUT_DIR" ]; then
-    echo "Creating directory $OUTPUT_DIR"
-    mkdir -p "$OUTPUT_DIR"
-fi
 
 # Load the appropriate environment
 if [ -f "${CONDA_PATH}/etc/profile.d/conda.sh" ]; then
@@ -58,9 +56,14 @@ ollama serve >> ${OLLAMA_LOG} 2>&1 &
 sleep 10
 ollama pull llama3.1 >> ${OLLAMA_LOG} 2>&1 &
 
-# Run the Python script with the job number and output directory as arguments
-echo "Running the Python script with job number ${JOB_NUMBER} and output directory ${OUTPUT_DIR}..."
-python ${PYTHON_SCRIPT} --job_number ${JOB_NUMBER} --run_directory ${OUTPUT_DIR}
+for OUTPUT_DIR in $OUTPUT_DIRS; do
+  # Run the Python script in the background with the output directory as an argument
+  echo "Running the Python script with output directory ${OUTPUT_DIR}..."
+  python ${PYTHON_SCRIPT} --run_directory ${OUTPUT_DIR} &
+done
 
-# Print a message after completion
-echo "Job completed."
+# Wait for all background jobs to finish
+wait
+
+# Print a message after all jobs have completed
+echo "All jobs completed."

@@ -14,14 +14,19 @@ fi
 # Function to submit a job
 submit_job() {
   local run_number=$1
-  local run_dir="$RUNS_DIR/run_$run_number"
-  
-  # Create a directory for the current run
-  mkdir -p "$run_dir"
-  
   # Set output and error file paths
-  local output_file="$run_dir/slurm.out"
-  local error_file="$run_dir/slurm.err"
+  run_dirs=""
+  run_numbers=""
+  for ((i=run_number; i<=run_number+2; i++)); do
+    local run_dir="$RUNS_DIR/run_$i"
+    # Create a directory for the current run
+    mkdir -p "$run_dir"
+    run_dirs+="$run_dir "
+    run_numbers+="$i"
+  done
+  echo "$run_numbers"
+  local output_file="$RUNS_DIR/slurm$run_numbers.out"
+  local error_file="$RUNS_DIR/slurm$run_numbers.err"
   
   # If no server was provided, try to find an idle server
   # SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
@@ -37,11 +42,11 @@ submit_job() {
   
   # Submit the job with the appropriate output, error files, job number, and output directory
   echo "Submitting run $run_number to server $SERVER"
-  sbatch --nodelist="$SERVER" -o "$output_file" -e "$error_file" "$START_SCRIPT" -j "$run_number" -o "$run_dir"
+  sbatch --nodelist="$SERVER" -o "$output_file" -e "$error_file" "$START_SCRIPT" -o "$run_dirs" -l $RUNS_DIR -n $run_numbers
 }
 
 # Run the script 10 times
-for ((i=1; i<=NUM_RUNS; i++)); do
+for ((i=1; i<=NUM_RUNS*3; i+=3)); do
   submit_job $i
   echo "Run $i submitted, waiting 10 seconds before checking for the next run."
   sleep 10
