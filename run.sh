@@ -2,7 +2,7 @@
 
 # Default values
 NUM_RUNS=10
-RUNS_DIR="./runs_3"
+RUNS_DIR="./runs/runs_1"
 START_SCRIPT="./start_script.sh"
 
 # Create the run directory if it doesn't exist
@@ -25,11 +25,13 @@ submit_job() {
   
   # If no server was provided, try to find an idle server
   # SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
-  SERVER="lenurple"
+  # SERVER="lenurple"
+  SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n')
   while [ -z "$SERVER" ]; do
     echo "No idle server found. Checking again in 10 seconds."
     sleep 10
-    SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
+    SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n')
+    # SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
   done
   echo "Found idle server: $SERVER"
   
