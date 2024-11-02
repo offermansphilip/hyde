@@ -37,7 +37,7 @@ fi
 CONDA_PATH="/usr/local/anaconda3"
 ENV_NAME="hyde"
 OLLAMA_LOG="${OLLAMA_LOG_DIR}/ollama${RUN_NUMBERS}.log"
-PYTHON_SCRIPT="./src/experiment.py"
+PYTHON_SCRIPT="./src/experiment2.py"
 
 # Load the appropriate environment
 if [ -f "${CONDA_PATH}/etc/profile.d/conda.sh" ]; then

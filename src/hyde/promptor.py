@@ -17,6 +17,10 @@ WEB_SEARCH_INTERMEDIATE = """Please write a passage to answer the question. Acti
 Question: {}
 Passage:"""
 
+WEB_SEARCH_PROFICIENT = """Please write a passage to answer the question. Acting as if you’re proficient in the field.
+Question: {}
+Passage:"""
+
 
 SCIFACT = """Please write a scientific paper passage to support/refute the claim.
 Claim: {}
@@ -67,6 +71,8 @@ class Promptor:
             return WEB_SEARCH_NOVICE.format(query)
         elif self.task == 'web search intermediate':
             return WEB_SEARCH_INTERMEDIATE.format(query)
+        elif self.task == 'web search proficient':
+            return WEB_SEARCH_PROFICIENT.format(query)
         elif self.task == 'scifact':
             return SCIFACT.format(query)
         elif self.task == 'arguana':
