@@ -49,6 +49,12 @@ fi
 # Activate the conda environment
 source activate ${ENV_NAME}
 
+# Set correct tmp dirs
+TMPDIR=/home/u440541/tmp 
+TEMP=/home/u440541/tmp 
+OLLAMA_TMPDIR=/tmp 
+OLLAMA_MODELS=/tmp/ollama
+
 # Start the Ollama server in the background and log the output
 echo "Starting Ollama server and pulling model..."
 ollama serve >> ${OLLAMA_LOG} 2>&1 &

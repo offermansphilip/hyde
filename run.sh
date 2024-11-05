@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Default values
-NUM_RUNS=7
+NUM_RUNS=8
 RUNS_DIR="./runs/runs_2"
 START_SCRIPT="./start_script.sh"
 
@@ -35,16 +35,16 @@ submit_job() {
   #SERVER="byzantium"
   #SERVER="sepia"
   #SERVER="lenurple"
-  #SERVER="cerulean"
-  SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n')
+  SERVER="cerulean"
+  #SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n' | head -n 1)
   while [ -z "$SERVER" ]; do
     echo "No idle server found. Checking again in 10 seconds."
     sleep 10
     #SERVER="byzantium"
     #SERVER="sepia"
     #SERVER="lenurple"
-    #SERVER="cerulean"
-    SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n')
+    SERVER="cerulean"
+    #SERVER=$(sinfo -o "%N %T" | awk '$2 == "idle" {print $1}' | tr ',' '\n' | head -n 1)
     # SERVER=$(sinfo -t idle -h -o "%N" | awk -F, '{print $1}')
   done
   echo "Found idle server: $SERVER"
@@ -56,7 +56,7 @@ submit_job() {
 }
 
 # Run the script 10 times
-for ((i=1; i<=NUM_RUNS*3; i+=3)); do
+for ((i=22; i<=NUM_RUNS*3; i+=3)); do
   submit_job $i
   echo "Run $i submitted, waiting 10 seconds before checking for the next run."
   sleep 10

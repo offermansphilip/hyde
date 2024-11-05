@@ -88,7 +88,7 @@ def main():
     
     print("___SINGLE_PROMPTS_HYDE___")
     # Define a list of prompt styles to iterate over
-    prompt_styles = ['web search expert', 'web search novice', 'web search intermediate']
+    prompt_styles = ['web search novice', 'web search intermediate', 'web search proficient', 'web search expert']
 
     for style in prompt_styles:
         print(f"Running Single Prompt HyDE for prompt style: {style}")
@@ -230,6 +230,71 @@ def main():
         trec_file = f'multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-trec'
         hypothetical_documents_file = f'multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-hyd.json'
         output_csv_file = f'multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-output.csv'
+
+        # Define the filepaths
+        trec_filepath = os.path.join(args.run_directory, trec_file)
+        hypothetical_documents_filepath = os.path.join(args.run_directory, hypothetical_documents_file) 
+        output_csv_filepath = os.path.join(args.run_directory, output_csv_file)
+
+        # Open the output file for writing retrieval results
+        with open(trec_filepath, 'w') as f:
+            for qid in tqdm(topics):
+                if qid in qrels:
+                    query = topics[qid]['title']  # Extract the query text from the topics
+
+                    # Generate hypothesis documents based on the query
+                    hypothesis_documents = hyde.generate(query)
+
+                    # Encode the query and hypothesis documents into dense vectors
+                    hyde_vector = hyde.encode(query, hypothesis_documents)
+
+                    # Perform a search in the Faiss index using the generated HyDE vector
+                    hits = hyde.search(hyde_vector, k=1000)
+
+                    # Write the top retrieved document results to the output file
+                    for rank, hit in enumerate(hits, start=1):
+                        f.write(f'{qid} Q0 {hit.docid} {rank} {hit.score} rank\n')
+                    
+                    # Write the query and hypothesis_documents to the JSON file incrementally
+                    with open(hypothetical_documents_filepath, 'a') as hypthetical_documents:
+                        json.dump({
+                            'query_id': qid,
+                            'query': query,
+                            'hypothesis_documents': hypothesis_documents
+                        }, hypthetical_documents)
+                        hypthetical_documents.write('\n')  # Add a newline after each JSON object for separation
+
+        # Example usage for evaluating metrics
+        evaluation_results = evaluate_metrics(trec_filepath)
+
+        # Write the evaluation results to the CSV file
+        with open(output_csv_filepath, mode='w', newline='') as file:
+            writer = csv.writer(file)
+        
+            # Write header (optional)
+            writer.writerow(['Metric', 'Value'])
+        
+            # Write the rows (each metric and its value)
+            writer.writerows(evaluation_results)
+
+    # Run Multi-Prompt HyDE
+    print("___2MULTI_PROMPT_HYDE____")
+    for generator in generators:
+        # Create multiple Promptor objects for different perspectives in web search prompts
+        promptor1 = Promptor(task='web search proficient')
+        promptor2 = Promptor(task='web search expert')
+        promptor3 = Promptor(task='web search novice')
+        promptor4 = Promptor(task='web search intermediate')
+
+        # Initialize the MultiPromptHyDE model
+        hyde = MultiPromptHyDE(promptor1=promptor1, promptor2=promptor2, promptor3=promptor3, promptor4=promptor4, 
+                               generator=generator, encoder=query_encoder, searcher=searcher)
+
+        temp = generator.get_temperature()
+        # Set filenames
+        trec_file = f'2multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-trec'
+        hypothetical_documents_file = f'2multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-hyd.json'
+        output_csv_file = f'2multi_prompt-hyde-dl19-contriever-llama3.1-{temp}-top1000-8rep-output.csv'
 
         # Define the filepaths
         trec_filepath = os.path.join(args.run_directory, trec_file)
